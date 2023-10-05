@@ -1,0 +1,66 @@
+Description: CloudFormation template for Security Group definitions
+
+Parameters:
+  S3BucketName:
+    Type: String
+  S3OjbectName:
+    Type: String
+  S3OjbectVersion:
+    Type: String
+
+Resources:
+  # assume role for lambda
+  LambdaRootRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          # allow lambda action write LOG in cloudwatch-log
+          Statement:
+          - Effect: Allow
+            Action:
+              - logs:*
+            Resource: 'arn:aws:logs:*:*:*'
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+              - xray:GetSamplingRules
+              - xray:GetSamplingTargets
+              - xray:GetSamplingStatisticSummaries
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - s3:Get*
+            - s3:List*
+            Resource: !Join ["", [ "arn:aws:s3:::", !Ref S3BucketName ] ]
+
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt LambdaRootRole.Arn
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: !Ref S3OjbectName
+        S3ObjectVersion: !Ref S3OjbectVersion
+      Timeout: 10
+      # Enable XRay
+      TracingConfig:
+        Mode: "Active"
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref S3BucketName

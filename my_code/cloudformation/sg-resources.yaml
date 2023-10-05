@@ -1,0 +1,71 @@
+Description: CloudFormation template for Security Group definitions
+
+Parameters:
+  VpcId:
+    Description: VPC
+    Type: String
+
+# launch template security group
+Resources:
+  # allow http protocol
+  allowHttpSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  # allow http protocol from ALB
+  allowHttpFromALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !GetAtt allowHttpSecurityGroup.GroupId
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  # allow ssh protocol
+  allowSSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  allowHttpSecurityGroup:
+    Description: allow http protocol - port 80
+    Value: !Ref allowHttpSecurityGroup
+    Export:
+      Name: AllowHttpSecurityGroupName
+
+  allowSSHSecurityGroup:
+    Description: allow ssh protocol - port 22
+    Value: !Ref allowSSHSecurityGroup
+    Export:
+      Name: AllowSSHSecurityGroupName
+
+  allowHttpFromALBSecurityGroup:
+    Description: allow http protocol from ALB
+    Value: !Ref allowHttpFromALBSecurityGroup
+    Export:
+      Name: AllowHttpFromALBSecurityGroupName

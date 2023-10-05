@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An example SAM template for a Lambda
+Parameters:
+  # For any variables you don't want stored in your repo, you can pass them through the SAM deploy command
+  # Ie, sam deploy .... --parameter-overrides MyEmail=myemail@gmail.com
+  MyEmail:
+    Type: String
+
+Resources:
+  lambdaFunctionCreatedBySAM:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: TestLambda
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      CodeUri: ./src
+      Description: just TestLambda
+      Timeout: 5
+      MemorySize: 128
+      Policies:
+        # Read more about SAM policy templates here
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MyTable
+      Environment:
+        Variables:
+          # Include the SNS topic ARN as an env var so that you can reference it in this function's my_code.
+          REGION_NAME: !Ref AWS::Region # pseudo parameter
+          TABLE_NAME: !Ref MyTable
+      Events:
+        SendMessageApi:
+          # An API Gateway endpoint that responds to HTTP GET
+          # when we access to API GATEWAY then API GATEWAY will trigger lambda
+          Type: Api
+          Properties:
+            Path: /send_message
+            Method: GET
+
+  # lambda function integrated with dynamoDB stream
+  lambdaWithDynamoDBStream:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: lambdaWithDynamoDBStream
+      Handler: stream.lambda_handler
+      Runtime: python3.7
+      CodeUri: ./src
+      Description: just TestLambda and dynamoDB stream
+      Timeout: 5
+      MemorySize: 128
+      # Lambda trigger sns topic
+      EventInvokeConfig:
+        DestinationConfig:
+          OnSuccess:
+            Type: SNS
+            Destination: !Ref MySnsTopic
+      Policies:
+        # Read more about SAM policy templates here
+        # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MySnsTopic.TopicName
+      Environment:
+        Variables:
+          # Include the SNS topic ARN as an env var so that you can reference it in this function's my_code.
+          SNS_TOPIC_ARN: !Ref MySnsTopic
+      Events:
+        Stream:
+          # integate with dynamoDB stream
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt MyTable.StreamArn
+            BatchSize: 1
+            StartingPosition: TRIM_HORIZON
+
+  # define sns topic for lambda destination
+  MySnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref MyEmail
+
+  # define dynamodb table for lambda destination
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+      # when new_image has been createed will trigger lambdaWithDynamoDBStream function
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+

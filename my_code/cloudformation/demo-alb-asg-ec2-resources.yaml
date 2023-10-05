@@ -1,0 +1,147 @@
+# define mappings
+Mappings:
+  RegionMap:
+    ap-southeast-1: 
+      HVM64: "ami-0db1894e055420bc0"
+      HVMG2: "ami-0be9df32ae9f92309"
+    ap-northeast-1: 
+      HVM64: "ami-06cd52961ce9f0d85"
+      HVMG2: "ami-053cdd503598e4a9d"
+
+# define parameters
+Parameters:
+  # ssh parameter
+  SshSecurityGroupDescriptionParameter:
+    Description: allow ssh to intances
+    Type: String
+  # InstanceType parameter
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    AllowedValues: 
+      - t2.micro
+      - t2.nano
+    Description: Enter t2.micro, t2.nano are allowed, By default is t2.micro
+  # environment type parameter
+  EnvTypeParameter:
+    Type: String
+    Description: environment type
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - test
+    ConstraintDescription: must specify prod, dev or test
+  # subnets parameter
+  Subnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: A list of subnets for the Auto Scaling group
+  # VPC parameter
+  VPC:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: A VPC that allows the load balancer access to the Internet
+  # CPU utilization metric params
+  CPUPolicyTargetValue:
+    Type: Number
+    Default: 40
+    Description: The target utilization for the CPU metric
+  # ALB request count target  params
+  ALBRequestCountTargetValue:
+    Type: Number
+    Default: 20
+    Description: The optimal average request count per instance during any one-minute interval
+Conditions:
+  IsProdEnvironment: !Equals [!Ref EnvTypeParameter, prod]
+
+Resources:
+  # Load Balancer resource
+  myLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: !Ref Subnets
+      SecurityGroups:
+        - !ImportValue AllowHttpSecurityGroupName
+
+  # Load Balancer Listener resource: forward http request to myTargetGroup
+  myLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref myTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref myLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # Load Target Group resource
+  myTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: myTargetGroup
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VPC
+
+  # EC2 launch template 
+  myLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties: 
+      LaunchTemplateName: !Sub ${AWS::StackName}-launch-template
+      LaunchTemplateData:
+        ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
+        InstanceType: !Ref InstanceTypeParameter
+        UserData:
+          Fn::Base64:
+            !Sub |
+            #!/bin/bash
+            # Use this for your user data (script from top to bottom)
+            # install httpd (Linux 2 version)
+            yum update -y
+            yum install -y httpd
+            systemctl start httpd
+            systemctl enable httpd
+            echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
+        SecurityGroupIds:
+          - !ImportValue AllowHttpFromALBSecurityGroupName
+          - !ImportValue AllowSSHSecurityGroupName
+
+  # ASG
+  myAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref myLaunchTemplate
+        Version: !GetAtt myLaunchTemplate.LatestVersionNumber
+      MaxSize: 3
+      MinSize: 1
+      DesiredCapacity: 1
+      VPCZoneIdentifier: !Ref Subnets
+      TargetGroupARNs: # link AutoScalingGroup vs ElasticLoadBalancer
+        - !Ref myTargetGroup
+
+  # scaling policy for ASG
+  myCPUPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref myAutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref CPUPolicyTargetValue
+
+  # scaling policy for ASG - base on the request count to each instance
+  myALBRequestCountPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    DependsOn: myLoadBalancerListener
+    Properties:
+      AutoScalingGroupName: !Ref myAutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ALBRequestCountPerTarget
+          ResourceLabel: !Join
+            - '/'
+            - - !GetAtt myLoadBalancer.LoadBalancerFullName
+              - !GetAtt myTargetGroup.TargetGroupFullName
+        TargetValue: !Ref ALBRequestCountTargetValue

@@ -1,0 +1,80 @@
+# define mappings
+Mappings:
+  RegionMap:
+    ap-southeast-1: 
+      HVM64: "ami-0db1894e055420bc0"
+      HVMG2: "ami-0be9df32ae9f92309"
+    ap-northeast-1: 
+      HVM64: "ami-06cd52961ce9f0d85"
+      HVMG2: "ami-053cdd503598e4a9d"
+
+
+# define parameters
+Parameters:
+  SshSecurityGroupDescriptionParameter:
+    Description: allow ssh to intances
+    Type: String
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    AllowedValues: 
+      - t2.micro
+      - t2.nano
+    Description: Enter t2.micro, t2.nano are allowed, By default is t2.micro
+  EnvType:
+    Type: String
+    Description: environment type
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - test
+    ConstraintDescription: must specify prod, dev or test
+
+Conditions:
+  IsProdEnvironment: !Equals [!Ref EnvType, prod]
+
+# define resources
+Resources:
+  # define EC2
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", "HVM64"]
+      InstanceType:
+        Ref: InstanceTypeParameter
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            # Use this for your user data (script from top to bottom)
+            # install httpd (Linux 2 version)
+            yum update -y
+            yum install -y httpd
+            systemctl start httpd
+            systemctl enable httpd
+            echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
+  # define EBS
+  Volume64:
+    Type: "AWS::EC2::Volume"
+    Properties:
+      AvailabilityZone: !GetAtt MyEC2Instance.AvailabilityZone
+      VolumeType: gp2
+      Size: 8
+      Tags: 
+      - Key: MyTag
+        Value: TagValue11111
+  # define mouting
+  MountPoint:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId: !Ref MyEC2Instance
+      VolumeId: !Ref Volume64
+      Device: /dev/sdh
+
+  # define Elastic IP
+  MyEIP:
+    Type: AWS::EC2::EIP
+    Condition: IsProdEnvironment
+    Properties: 
+      InstanceId: !Ref MyEC2Instance

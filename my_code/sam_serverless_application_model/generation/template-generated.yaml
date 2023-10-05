@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: An example SAM template for a Lambda
+Parameters:
+  MyEmail:
+    Type: String
+Resources:
+  lambdaFunctionCreatedBySAM:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: TestLambda
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://duongdx-code-sam/3ddec6198f0488fb29657463c16560f2
+      Description: just TestLambda
+      Timeout: 5
+      MemorySize: 128
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: MyTable
+      Environment:
+        Variables:
+          REGION_NAME:
+            Ref: AWS::Region
+          TABLE_NAME:
+            Ref: MyTable
+      Events:
+        SendMessageApi:
+          Type: Api
+          Properties:
+            Path: /send_message
+            Method: GET
+  lambdaWithDynamoDBStream:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: lambdaWithDynamoDBStream
+      Handler: stream.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://duongdx-code-sam/3ddec6198f0488fb29657463c16560f2
+      Description: just TestLambda and dynamoDB stream
+      Timeout: 5
+      MemorySize: 128
+      EventInvokeConfig:
+        DestinationConfig:
+          OnSuccess:
+            Type: SNS
+            Destination:
+              Ref: MySnsTopic
+      Policies:
+      - SNSPublishMessagePolicy:
+          TopicName:
+            Fn::GetAtt:
+            - MySnsTopic
+            - TopicName
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN:
+            Ref: MySnsTopic
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream:
+              Fn::GetAtt:
+              - MyTable
+              - StreamArn
+            BatchSize: 1
+            StartingPosition: TRIM_HORIZON
+  MySnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Protocol: email
+        Endpoint:
+          Ref: MyEmail
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: user_id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: user_id
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
