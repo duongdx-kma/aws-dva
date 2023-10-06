@@ -1,0 +1,345 @@
+Parameters:
+  emailSubscription:
+    Type: String
+    Description: email subscription
+Resources:
+  duongdxtestcdkE54EF039:
+    Type: AWS::S3::Bucket
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/duongdx-test-cdk/Resource
+  duongdxtestcdkNotificationsF7C86428:
+    Type: Custom::S3BucketNotifications
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691
+          - Arn
+      BucketName:
+        Ref: duongdxtestcdkE54EF039
+      NotificationConfiguration:
+        LambdaFunctionConfigurations:
+          - Events:
+              - s3:ObjectCreated:*
+            LambdaFunctionArn:
+              Fn::GetAtt:
+                - cdklambdafuntion6063EFB0
+                - Arn
+      Managed: true
+    DependsOn:
+      - duongdxtestcdkAllowBucketNotificationsToCdkCloudDevelopmentKitStackcdklambdafuntion8F690DD4EA11304C
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/duongdx-test-cdk/Notifications/Resource
+  duongdxtestcdkAllowBucketNotificationsToCdkCloudDevelopmentKitStackcdklambdafuntion8F690DD4EA11304C:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - cdklambdafuntion6063EFB0
+          - Arn
+      Principal: s3.amazonaws.com
+      SourceAccount:
+        Ref: AWS::AccountId
+      SourceArn:
+        Fn::GetAtt:
+          - duongdxtestcdkE54EF039
+          - Arn
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/duongdx-test-cdk/AllowBucketNotificationsToCdkCloudDevelopmentKitStackcdklambdafuntion8F690DD4
+  cdklambdaroleD410F7DF:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-lambda-role/Resource
+  cdklambdaroleDefaultPolicyE1EC7D56:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - rekognition:*
+            Effect: Allow
+            Resource: "*"
+          - Action: sns:Publish
+            Effect: Allow
+            Resource:
+              Ref: cdktopic920EC42A
+          - Action:
+              - s3:Abort*
+              - s3:DeleteObject*
+              - s3:GetBucket*
+              - s3:GetObject*
+              - s3:List*
+              - s3:PutObject
+              - s3:PutObjectLegalHold
+              - s3:PutObjectRetention
+              - s3:PutObjectTagging
+              - s3:PutObjectVersionTagging
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - duongdxtestcdkE54EF039
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - duongdxtestcdkE54EF039
+                        - Arn
+                    - /*
+          - Action: dynamodb:*
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - cdkimagetable3FF21890
+                  - Arn
+              - Ref: AWS::NoValue
+        Version: "2012-10-17"
+      PolicyName: cdklambdaroleDefaultPolicyE1EC7D56
+      Roles:
+        - Ref: cdklambdaroleD410F7DF
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-lambda-role/DefaultPolicy/Resource
+  cdkimagetable3FF21890:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: image_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: image_id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-image-table/Resource
+  cdktopic920EC42A:
+    Type: AWS::SNS::Topic
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-topic/Resource
+  cdktopicTokenSubscription1D1C4480D:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint:
+        Ref: emailSubscription
+      Protocol: email
+      TopicArn:
+        Ref: cdktopic920EC42A
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-topic/TokenSubscription:1/Resource
+  cdklambdafuntion6063EFB0:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-ap-southeast-1
+        S3Key: b117324359a19307ca7331c5b4994b9b496b788686159dfa065bd8c37d73ff77.zip
+      Environment:
+        Variables:
+          TABLE:
+            Ref: cdkimagetable3FF21890
+          BUCKET:
+            Ref: duongdxtestcdkE54EF039
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - cdklambdaroleD410F7DF
+          - Arn
+      Runtime: python3.9
+    DependsOn:
+      - cdklambdaroleDefaultPolicyE1EC7D56
+      - cdklambdaroleD410F7DF
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-lambda-funtion/Resource
+      aws:asset:path: asset.b117324359a19307ca7331c5b4994b9b496b788686159dfa065bd8c37d73ff77
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  cdklambdafuntionEventInvokeConfig9EE1C783:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      DestinationConfig:
+        OnSuccess:
+          Destination:
+            Ref: cdktopic920EC42A
+      FunctionName:
+        Ref: cdklambdafuntion6063EFB0
+      Qualifier: $LATEST
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/cdk-lambda-funtion/EventInvokeConfig/Resource
+  BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/Resource
+  BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: s3:PutBucketNotification
+            Effect: Allow
+            Resource: "*"
+        Version: "2012-10-17"
+      PolicyName: BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36
+      Roles:
+        - Ref: BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Role/DefaultPolicy/Resource
+  BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: AWS CloudFormation handler for "Custom::S3BucketNotifications" resources (@aws-cdk/aws-s3)
+      Code:
+        ZipFile: |
+          import boto3  # type: ignore
+          import json
+          import logging
+          import urllib.request
+
+          s3 = boto3.client("s3")
+
+          EVENTBRIDGE_CONFIGURATION = 'EventBridgeConfiguration'
+
+          CONFIGURATION_TYPES = ["TopicConfigurations", "QueueConfigurations", "LambdaFunctionConfigurations"]
+
+          def handler(event: dict, context):
+            response_status = "SUCCESS"
+            error_message = ""
+            try:
+              props = event["ResourceProperties"]
+              bucket = props["BucketName"]
+              notification_configuration = props["NotificationConfiguration"]
+              request_type = event["RequestType"]
+              managed = props.get('Managed', 'true').lower() == 'true'
+              stack_id = event['StackId']
+
+              if managed:
+                config = handle_managed(request_type, notification_configuration)
+              else:
+                config = handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
+
+              put_bucket_notification_configuration(bucket, config)
+            except Exception as e:
+              logging.exception("Failed to put bucket notification configuration")
+              response_status = "FAILED"
+              error_message = f"Error: {str(e)}. "
+            finally:
+              submit_response(event, context, response_status, error_message)
+
+          def handle_managed(request_type, notification_configuration):
+            if request_type == 'Delete':
+              return {}
+            return notification_configuration
+
+          def handle_unmanaged(bucket, stack_id, request_type, notification_configuration):
+            external_notifications = find_external_notifications(bucket, stack_id)
+
+            if request_type == 'Delete':
+              return external_notifications
+
+            def with_id(notification):
+              notification['Id'] = f"{stack_id}-{hash(json.dumps(notification, sort_keys=True))}"
+              return notification
+
+            notifications = {}
+            for t in CONFIGURATION_TYPES:
+              external = external_notifications.get(t, [])
+              incoming = [with_id(n) for n in notification_configuration.get(t, [])]
+              notifications[t] = external + incoming
+
+            if EVENTBRIDGE_CONFIGURATION in notification_configuration:
+              notifications[EVENTBRIDGE_CONFIGURATION] = notification_configuration[EVENTBRIDGE_CONFIGURATION]
+            elif EVENTBRIDGE_CONFIGURATION in external_notifications:
+              notifications[EVENTBRIDGE_CONFIGURATION] = external_notifications[EVENTBRIDGE_CONFIGURATION]
+
+            return notifications
+
+          def find_external_notifications(bucket, stack_id):
+            existing_notifications = get_bucket_notification_configuration(bucket)
+            external_notifications = {}
+            for t in CONFIGURATION_TYPES:
+              external_notifications[t] = [n for n in existing_notifications.get(t, []) if not n['Id'].startswith(f"{stack_id}-")]
+
+            if EVENTBRIDGE_CONFIGURATION in existing_notifications:
+              external_notifications[EVENTBRIDGE_CONFIGURATION] = existing_notifications[EVENTBRIDGE_CONFIGURATION]
+
+            return external_notifications
+
+          def get_bucket_notification_configuration(bucket):
+            return s3.get_bucket_notification_configuration(Bucket=bucket)
+
+          def put_bucket_notification_configuration(bucket, notification_configuration):
+            s3.put_bucket_notification_configuration(Bucket=bucket, NotificationConfiguration=notification_configuration)
+
+          def submit_response(event: dict, context, response_status: str, error_message: str):
+            response_body = json.dumps(
+              {
+                "Status": response_status,
+                "Reason": f"{error_message}See the details in CloudWatch Log Stream: {context.log_stream_name}",
+                "PhysicalResourceId": event.get("PhysicalResourceId") or event["LogicalResourceId"],
+                "StackId": event["StackId"],
+                "RequestId": event["RequestId"],
+                "LogicalResourceId": event["LogicalResourceId"],
+                "NoEcho": False,
+              }
+            ).encode("utf-8")
+            headers = {"content-type": "", "content-length": str(len(response_body))}
+            try:
+              req = urllib.request.Request(url=event["ResponseURL"], headers=headers, data=response_body, method="PUT")
+              with urllib.request.urlopen(req) as response:
+                print(response.read().decode("utf-8"))
+              print("Status code: " + response.reason)
+            except Exception as e:
+                print("send(..) failed executing request.urlopen(..): " + str(e))
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+          - BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC
+          - Arn
+      Runtime: python3.9
+      Timeout: 300
+    DependsOn:
+      - BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36
+      - BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/BucketNotificationsHandler050a0587b7544547bf325f094a3db834/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/2WQwW7CMBBEv4W7s6VwKceCitRTEfSOHGdBS+J15LVToSj/XttpUaWe5nlm1x55BZsNPC/0l1SmaauOahhPQZtW7S580F5bDOhVys+jrGHcRtNiyOEPzbLVgpPqtK0bDWNeRW9JhByrfWQTMiT7wW8DcnjnwbW4c3yha07/mZMibWE8ug5zXvTgOjL3Uq/QpJo7a+ua1PxT1/NkgUkJSzJdT6aYBU6xFuOp/63095w21mctgkHgNctUnkVx0Zty8UcMfQzqYZWp9GFX4tSWXYNwk6dhtYQXWC5uQlT5yIEswnHWb5tTT41yAQAA
+    Metadata:
+      aws:cdk:path: CdkCloudDevelopmentKitStack/CDKMetadata/Default
+Outputs:
+  Bucket:
+    Value:
+      Ref: duongdxtestcdkE54EF039
+  Table:
+    Value:
+      Ref: cdkimagetable3FF21890
