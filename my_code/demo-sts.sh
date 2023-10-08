@@ -4,7 +4,7 @@
 https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html
 
 
-PRODUCT ACCOUNT
+PRODUCT ACCOUNT - 11111111111
 
 # 1 create lambda function (demoFunction)
 
@@ -23,7 +23,7 @@ PRODUCT ACCOUNT
 }
 
 
-# 3 create role for assume role (demoSTSRole)
+# 3 create role invoke lambda (demoSTSRole)
 
 - permission: demoSTSInvokeLambdaPolicy
 - Trust relationships 
@@ -79,9 +79,31 @@ cross-account
 
 ------------ console step: https://www.youtube.com/watch?v=-JAg5A26gF0 ---------------------------
 
-DEV ACCOUNT
+DEV ACCOUNT - 22222222222
 
-# 3 edit policy allow user assume role (StsAssumeRolePoliceToDuongDinhXuanAccount)
+# 1 edit role for assume role (demoSTSRole) - in product accout
+
+- permission: demoSTSInvokeLambdaPolicy
+- Trust relationships 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::11111111111:user/sts-user",
+                    "arn:aws:iam::22222222222:user/cross-account",
+                ]
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {}
+        }
+    ]
+}
+
+
+# 2 create policy allow user assume role (StsAssumeRolePoliceToDuongDinhXuanAccount) - for cross-account
 {
     "Version": "2012-10-17",
     "Statement": [
