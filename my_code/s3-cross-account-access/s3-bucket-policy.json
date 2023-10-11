@@ -1,0 +1,50 @@
+// for prod account what is have s3 bucket
+
+
+{
+    "Version": "2012-10-17",
+    "Id": "PutObjPolicy",
+    "Statement": [
+        {
+            "Sid": "allow",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::240993297305:root",
+                    "arn:aws:iam::240993297305:user/duongdx-dev",
+                    "arn:aws:iam::195211018705:root"
+                ]
+            },
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": "arn:aws:s3:::duongdx-test-cross-account",
+            "Condition": {}
+        },
+        {
+            "Sid": "allow2",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::240993297305:root",
+                    "arn:aws:iam::240993297305:user/duongdx-dev",
+                    "arn:aws:iam::195211018705:root"
+                ]
+            },
+            "Action": [
+                "s3:GetObjectLegalHold",
+                "s3:GetObjectVersionAttributes",
+                "s3:GetObjectAcl",
+                "s3:GetObject",
+                "s3:GetObjectTorrent",
+                "s3:GetObjectVersionAcl",
+                "s3:GetObjectTagging",
+                "s3:GetObjectVersionForReplication",
+                "s3:GetObjectVersion"
+            ],
+            "Resource": "arn:aws:s3:::duongdx-test-cross-account/*",
+            "Condition": {}
+        }
+    ]
+}
