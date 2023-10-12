@@ -46,5 +46,31 @@
             "Resource": "arn:aws:s3:::duongdx-test-cross-account/*",
             "Condition": {}
         }
+//      ,{
+//          "Sid": "deny-duongdx-senior-dev",
+//          "Effect": "Deny",
+//          "Principal": {
+//              "AWS": "arn:aws:iam::240993297305:user/duongdx-senior-dev"
+//          },
+//          "Action": [
+//              "s3:ListBucket",
+//              "s3:GetBucketLocation"
+//          ],
+//          "Resource": "arn:aws:s3:::duongdx-test-cross-account",
+//          "Condition": {}
+//      },
+//      {
+//          "Sid": "deny-duongdx-senior-dev1",
+//          "Effect": "Deny",
+//          "Principal": {
+//              "AWS": "arn:aws:iam::240993297305:user/duongdx-senior-dev"
+//          },
+//          "Action": [
+//              "s3:PutObject",
+//              "s3:GetObject"
+//          ],
+//          "Resource": "arn:aws:s3:::duongdx-test-cross-account/*",
+//          "Condition": {}
+//      }
     ]
 }
