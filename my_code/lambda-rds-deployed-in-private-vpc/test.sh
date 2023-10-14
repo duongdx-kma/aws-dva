@@ -18,3 +18,4 @@ CREATE DATABASE test_db;
 
 psql --host=database-test.ci0bwbkmi7tv.ap-southeast-1.rds.amazonaws.com --port=5432 --username=root --dbname=test_db
 
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_GettingStarted.CreatingConnecting.PostgreSQL.html
