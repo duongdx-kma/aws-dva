@@ -3,18 +3,21 @@ version: "3"
 services:
   my_react_app_dev:
     container_name: my_react_app_dev
+    image: my_react_app_dev
     build:
       context: ./
       dockerfile: Dockerfile.dev
-    environment:
-      - APACHE_RUN_USER=#1000
-      - APACHE_RUN_GROUP=#1000
+#    environment:
+#      - appi=#1000
+#      - APACHE_RUN_GROUP=#1000
     ports:
       - 3000:3000
     networks:
       - my_react_app_dev_network
+    volumes:
+      - ./src:/app/src
+    stdin_open: true
 
 networks:
   my_react_app_dev_network:
     name: my_react_app_dev_network
-

@@ -2,9 +2,9 @@ Description: CloudFormation template for Security Group definitions
 
 Parameters:
   VpcId:
-    Description: VPC
-    Type: String
-
+    Type: 'AWS::EC2::VPC::Id'
+    Description: A VPC that allows the load balancer access to the Internet
+    
 # launch template security group
 Resources:
   # allow http protocol
