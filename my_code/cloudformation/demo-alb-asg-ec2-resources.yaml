@@ -90,6 +90,10 @@ Resources:
       LaunchTemplateData:
         ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
         InstanceType: !Ref InstanceTypeParameter
+        # by default ec2 instance send data to cloudwatch every 5-minutes. when enable EC2 metric data will be available at 1-minute intervals
+        # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch-new.html
+        Monitoring: 
+          Enabled: true
         UserData:
           Fn::Base64:
             !Sub |
